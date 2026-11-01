@@ -56,4 +56,17 @@ async function calcularDistribuicaoFefo(idProduto, quantidade) {
   return distribuicao;
 }
 
-module.exports = { consultarEstoque, calcularDistribuicaoFefo };
+async function calcularPrevia(idProduto, quantidade) {
+  const produto = await produtoModel.buscarPorId(pool, idProduto);
+  if (!produto) throw Object.assign(new Error('Produto não encontrado'), { status: 404 });
+  if (!quantidade || quantidade <= 0) {
+    throw Object.assign(new Error('Quantidade deve ser positiva'), { status: 400 });
+  }
+  const distribuicao = await calcularDistribuicaoFefo(idProduto, quantidade);
+  if (!distribuicao) {
+    throw Object.assign(new Error(`Saldo insuficiente para ${produto.nome}`), { status: 409 });
+  }
+  return { idProduto: produto.id_produto, nome: produto.nome, unidade: produto.unidade, quantidade, distribuicao };
+}
+
+module.exports = { consultarEstoque, calcularDistribuicaoFefo, calcularPrevia };

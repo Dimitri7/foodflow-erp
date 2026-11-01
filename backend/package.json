@@ -6,7 +6,9 @@
     "start": "node src/server.js",
     "dev": "nodemon src/server.js",
     "db:reset": "node db/setup.js",
-    "test": "echo \"sem testes por enquanto\""
+    "pretest": "node db/setup.js",
+    "test": "node --test test/api.test.js",
+    "posttest": "node db/setup.js"
   },
   "dependencies": {
     "bcryptjs": "^2.4.3",
@@ -19,6 +21,7 @@
     "socket.io": "^4.7.5"
   },
   "devDependencies": {
-    "nodemon": "^3.1.4"
+    "nodemon": "^3.1.4",
+    "socket.io-client": "^4.7.5"
   }
 }

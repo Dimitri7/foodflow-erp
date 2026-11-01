@@ -4,7 +4,9 @@ const { Pool } = require('pg');
 const fs = require('fs');
 const path = require('path');
 
-const pool = new Pool({ connectionString: process.env.DATABASE_URL });
+const connectionString = (process.env.DATABASE_URL || '')
+  .replace(/sslmode=(prefer|require|verify-ca)/g, 'sslmode=verify-full');
+const pool = new Pool({ connectionString, ssl: { rejectUnauthorized: false } });
 
 async function executar(arquivo) {
   const sql = fs.readFileSync(path.join(__dirname, arquivo), 'utf8');

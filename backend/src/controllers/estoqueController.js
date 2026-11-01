@@ -6,4 +6,11 @@ async function consultarEstoque(req, res, next) {
   } catch (err) { next(err); }
 }
 
-module.exports = { consultarEstoque };
+async function previa(req, res, next) {
+  try {
+    const quantidade = parseFloat(req.query.quantidade);
+    res.json(await estoqueService.calcularPrevia(parseInt(req.params.idProduto), quantidade));
+  } catch (err) { next(err); }
+}
+
+module.exports = { consultarEstoque, previa };
