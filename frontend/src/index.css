@@ -1,0 +1,115 @@
+@import 'bootstrap/dist/css/bootstrap.min.css';
+
+:root {
+  --bs-primary: #2d6a4f;
+  --bs-primary-rgb: 45, 106, 79;
+  --bs-link-color: #2d6a4f;
+  --bs-link-hover-color: #1b4332;
+}
+
+.sidebar {
+  min-height: 100vh;
+  background-color: #1b4332;
+  width: 220px;
+  flex-shrink: 0;
+}
+
+.sidebar .nav-link {
+  color: #d8f3dc;
+  border-radius: 6px;
+  margin-bottom: 2px;
+  padding: 0.5rem 1rem;
+}
+
+.sidebar .nav-link:hover,
+.sidebar .nav-link.active {
+  background-color: #2d6a4f;
+  color: #fff;
+}
+
+.sidebar .brand {
+  color: #74c69d;
+  font-weight: 700;
+  font-size: 1.2rem;
+  padding: 1.2rem 1rem;
+  border-bottom: 1px solid #2d6a4f;
+  margin-bottom: 0.5rem;
+}
+
+.content-area {
+  flex: 1;
+  overflow-y: auto;
+  background-color: #f8f9fa;
+  min-height: 100vh;
+}
+
+.btn-primary {
+  background-color: #2d6a4f;
+  border-color: #2d6a4f;
+}
+
+.btn-primary:hover,
+.btn-primary:focus {
+  background-color: #1b4332;
+  border-color: #1b4332;
+}
+
+.btn-outline-primary {
+  color: #2d6a4f;
+  border-color: #2d6a4f;
+}
+
+.btn-outline-primary:hover {
+  background-color: #2d6a4f;
+  border-color: #2d6a4f;
+  color: #fff;
+}
+
+.badge-vencido {
+  background-color: #dc3545;
+}
+
+.badge-proximo {
+  background-color: #fd7e14;
+}
+
+.kanban-col {
+  min-width: 260px;
+  max-width: 300px;
+  background-color: #e9ecef;
+  border-radius: 8px;
+  padding: 0.75rem;
+}
+
+.kanban-card {
+  background: #fff;
+  border-radius: 6px;
+  border-left: 4px solid #2d6a4f;
+  padding: 0.75rem;
+  margin-bottom: 0.5rem;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+}
+
+.kanban-card.expedido {
+  border-left-color: #6c757d;
+  opacity: 0.8;
+}
+
+.table thead th {
+  background-color: #f1f3f5;
+  font-weight: 600;
+  font-size: 0.875rem;
+}
+
+.login-wrapper {
+  min-height: 100vh;
+  background: linear-gradient(135deg, #1b4332 0%, #2d6a4f 60%, #40916c 100%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.login-card {
+  width: 100%;
+  max-width: 420px;
+}

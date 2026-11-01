@@ -3,3 +3,4 @@ node_modules/
 GUIA_DE_DEFESA.md
 dist/
 *.log
+.claude/settings.local.json
