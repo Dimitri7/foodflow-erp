@@ -1,0 +1,5 @@
+node_modules/
+.env
+GUIA_DE_DEFESA.md
+dist/
+*.log
