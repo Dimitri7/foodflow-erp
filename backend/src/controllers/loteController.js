@@ -19,4 +19,22 @@ async function criar(req, res, next) {
   } catch (err) { next(err); }
 }
 
-module.exports = { listar, buscarPorId, criar };
+async function ajustar(req, res, next) {
+  try {
+    res.json(await loteService.ajustar(parseInt(req.params.id), req.body, req.usuario.id));
+  } catch (err) { next(err); }
+}
+
+async function vencendo(req, res, next) {
+  try {
+    res.json(await loteService.listarVencendo());
+  } catch (err) { next(err); }
+}
+
+async function rastreio(req, res, next) {
+  try {
+    res.json(await loteService.rastreio(parseInt(req.params.id)));
+  } catch (err) { next(err); }
+}
+
+module.exports = { listar, buscarPorId, criar, ajustar, vencendo, rastreio };

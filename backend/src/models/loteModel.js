@@ -70,4 +70,51 @@ async function buscarLotesVigentesFefo(client, idProduto) {
   return rows;
 }
 
-module.exports = { listar, buscarPorId, criar, buscarLotesVigentesFefo };
+async function buscarParaLock(client, id) {
+  const { rows } = await client.query(
+    'SELECT * FROM lotes WHERE id_lote = $1 FOR UPDATE',
+    [id]
+  );
+  return rows[0] || null;
+}
+
+async function ajustar(client, id, quantidade) {
+  const { rows } = await client.query(
+    'UPDATE lotes SET quantidade_disponivel = $1 WHERE id_lote = $2 RETURNING *',
+    [quantidade, id]
+  );
+  return rows[0] || null;
+}
+
+async function buscarVencendo(db, dias) {
+  const { rows } = await db.query(
+    `SELECT l.id_lote, l.id_produto, p.nome AS nome_produto, p.unidade,
+            l.codigo_lote, l.data_validade, l.quantidade_disponivel, l.data_entrada
+     FROM lotes l
+     JOIN produtos p ON p.id_produto = l.id_produto
+     WHERE l.quantidade_disponivel > 0
+       AND l.data_validade >= ${HOJE_FORTALEZA}
+       AND l.data_validade <= ${HOJE_FORTALEZA} + ($1 || ' days')::interval
+     ORDER BY l.data_validade, l.id_lote`,
+    [dias]
+  );
+  return rows;
+}
+
+async function buscarRastreio(db, idLote) {
+  const { rows } = await db.query(
+    `SELECT p.id_pedido, p.data_criacao, p.status,
+            c.razao_social, c.cnpj,
+            i.quantidade, i.preco_unitario
+     FROM itens_pedido i
+     JOIN pedidos p  ON p.id_pedido  = i.id_pedido
+     JOIN clientes c ON c.id_cliente = p.id_cliente
+     WHERE i.id_lote = $1
+       AND p.status != 'cancelado'
+     ORDER BY p.data_criacao`,
+    [idLote]
+  );
+  return rows;
+}
+
+module.exports = { listar, buscarPorId, criar, buscarLotesVigentesFefo, buscarParaLock, ajustar, buscarVencendo, buscarRastreio };

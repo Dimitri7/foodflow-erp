@@ -2,6 +2,7 @@ const pool = require('../config/db');
 const loteModel = require('../models/loteModel');
 const produtoModel = require('../models/produtoModel');
 const auditoriaModel = require('../models/auditoriaModel');
+const { getIo } = require('../socket');
 
 function hojeFortaleza() {
   return new Date(new Date().toLocaleString('en-US', { timeZone: 'America/Fortaleza' }));
@@ -63,4 +64,53 @@ async function criar(dados, idUsuario) {
   }
 }
 
-module.exports = { listar, buscarPorId, criar };
+async function ajustar(id, { quantidade, justificativa }, idUsuario) {
+  if (justificativa === undefined || justificativa === null || String(justificativa).trim().length < 10) {
+    throw Object.assign(new Error('Justificativa deve ter no mínimo 10 caracteres'), { status: 400 });
+  }
+  if (quantidade === undefined || quantidade === null || Number(quantidade) < 0) {
+    throw Object.assign(new Error('Quantidade não pode ser negativa'), { status: 400 });
+  }
+
+  const client = await pool.connect();
+  try {
+    await client.query('BEGIN');
+
+    const lote = await loteModel.buscarParaLock(client, id);
+    if (!lote) throw Object.assign(new Error('Lote não encontrado'), { status: 404 });
+
+    await loteModel.ajustar(client, id, Number(quantidade));
+
+    await auditoriaModel.registrar(client, {
+      idUsuario, acao: 'UPDATE', tabela: 'lotes',
+      idRegistro: id,
+      valorAnterior: { quantidade_disponivel: lote.quantidade_disponivel },
+      valorNovo: { quantidade_disponivel: Number(quantidade), justificativa: String(justificativa).trim() },
+    });
+
+    await client.query('COMMIT');
+
+    const io = getIo();
+    if (io) io.emit('estoque:atualizado', { idsProdutos: [lote.id_produto] });
+
+    return loteModel.buscarPorId(pool, id);
+  } catch (err) {
+    await client.query('ROLLBACK');
+    throw err;
+  } finally {
+    client.release();
+  }
+}
+
+async function listarVencendo() {
+  const dias = parseInt(process.env.DIAS_ALERTA_VENCIMENTO) || 30;
+  return loteModel.buscarVencendo(pool, dias);
+}
+
+async function rastreio(id) {
+  const lote = await loteModel.buscarPorId(pool, id);
+  if (!lote) throw Object.assign(new Error('Lote não encontrado'), { status: 404 });
+  return loteModel.buscarRastreio(pool, id);
+}
+
+module.exports = { listar, buscarPorId, criar, ajustar, listarVencendo, rastreio };

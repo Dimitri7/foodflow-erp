@@ -307,3 +307,123 @@ test('CA14 - usuário inativo com senha correta não autentica: 401', async () =
   const r = await req('POST', '/api/auth/login', { email: 'inativo@foodflow.com', senha: 'foodflow123' });
   assert.equal(r.status, 401);
 });
+
+test('CA09 - cancelamento com estorno: pedido em_separacao volta o saldo ao lote', async () => {
+  const idProduto = await criarProduto('Produto CA09');
+  await criarLote(idProduto, 'L1-CA09', 30);
+
+  const criacao = await req('POST', '/api/pedidos', {
+    idCliente: 1,
+    itens: [{ idProduto, quantidade: 30 }],
+  }, tokens.vendedor);
+  assert.equal(criacao.status, 201, `criação do pedido falhou: ${JSON.stringify(criacao.body)}`);
+  const idPedido = criacao.body.id_pedido;
+
+  const avancar = await req('PATCH', `/api/pedidos/${idPedido}/status`, { status: 'em_separacao' }, tokens.operador);
+  assert.equal(avancar.status, 200, `avanço para em_separacao falhou: ${JSON.stringify(avancar.body)}`);
+
+  const cancelar = await req('PATCH', `/api/pedidos/${idPedido}/cancelar`, { motivo: 'Cancelamento de teste CA09' }, tokens.vendedor);
+  assert.equal(cancelar.status, 200, `cancelamento falhou: ${JSON.stringify(cancelar.body)}`);
+  assert.equal(cancelar.body.status, 'cancelado');
+
+  const estoque = await req('GET', `/api/estoque/${idProduto}`, undefined, tokens.admin);
+  assert.equal(Number(estoque.body.saldoTotal), 30, 'saldo deve ter voltado a 30 após estorno');
+});
+
+test('CA10 - cancelar pedido expedido é recusado: 409', async () => {
+  const idProduto = await criarProduto('Produto CA10');
+  await criarLote(idProduto, 'L1-CA10', 10);
+
+  const criacao = await req('POST', '/api/pedidos', {
+    idCliente: 1,
+    itens: [{ idProduto, quantidade: 5 }],
+  }, tokens.vendedor);
+  assert.equal(criacao.status, 201);
+  const idPedido = criacao.body.id_pedido;
+
+  for (const status of ['em_separacao', 'separado', 'expedido']) {
+    const r = await req('PATCH', `/api/pedidos/${idPedido}/status`, { status }, tokens.operador);
+    assert.equal(r.status, 200, `avanço para ${status} falhou: ${JSON.stringify(r.body)}`);
+  }
+
+  const cancelar = await req('PATCH', `/api/pedidos/${idPedido}/cancelar`, { motivo: 'Tentativa inválida' }, tokens.admin);
+  assert.equal(cancelar.status, 409);
+});
+
+test('CA13 - rastreio de lote lista os pedidos que o consumiram', async () => {
+  const idProduto = await criarProduto('Produto CA13');
+  const idLote = await criarLote(idProduto, 'L1-CA13', 100);
+
+  const p1 = await req('POST', '/api/pedidos', {
+    idCliente: 1,
+    itens: [{ idProduto, quantidade: 10 }],
+  }, tokens.vendedor);
+  assert.equal(p1.status, 201);
+
+  const p2 = await req('POST', '/api/pedidos', {
+    idCliente: 2,
+    itens: [{ idProduto, quantidade: 20 }],
+  }, tokens.vendedor2);
+  assert.equal(p2.status, 201);
+
+  const rastreio = await req('GET', `/api/lotes/${idLote}/rastreio`, undefined, tokens.admin);
+  assert.equal(rastreio.status, 200, `rastreio falhou: ${JSON.stringify(rastreio.body)}`);
+  assert.equal(rastreio.body.length, 2, 'deve listar os dois pedidos');
+});
+
+test('ajuste de lote altera quantidade e registra na auditoria', async () => {
+  const idProduto = await criarProduto('Produto Ajuste');
+  const idLote = await criarLote(idProduto, 'L1-Ajuste', 50);
+
+  const r = await req('PUT', `/api/lotes/${idLote}/ajuste`, {
+    quantidade: 30,
+    justificativa: 'Avaria identificada na contagem física',
+  }, tokens.operador);
+  assert.equal(r.status, 200, `ajuste falhou: ${JSON.stringify(r.body)}`);
+  assert.equal(Number(r.body.quantidade_disponivel), 30);
+
+  const { rows } = await pool.query(
+    `SELECT * FROM logs_auditoria WHERE tabela_afetada = 'lotes' AND id_registro = $1 AND acao = 'UPDATE'`,
+    [idLote]
+  );
+  assert.ok(rows.length > 0, 'auditoria do ajuste deve existir');
+});
+
+test('alertas lista produtos com saldo igual ou abaixo do estoque mínimo', async () => {
+  const criacao = await req('POST', '/api/produtos', {
+    nome: 'Produto Alerta',
+    categoria: 'Teste',
+    unidade: 'cx',
+    precoUnitario: 10.00,
+    estoqueMinimo: 100,
+  }, tokens.admin);
+  assert.equal(criacao.status, 201, `criação do produto alerta falhou: ${JSON.stringify(criacao.body)}`);
+  const idProduto = criacao.body.id_produto;
+  await criarLote(idProduto, 'L1-Alerta', 10);
+
+  const r = await req('GET', '/api/produtos/alertas', undefined, tokens.admin);
+  assert.equal(r.status, 200, `alertas falhou: ${JSON.stringify(r.body)}`);
+  const encontrado = r.body.find(p => p.id_produto === idProduto);
+  assert.ok(encontrado, 'produto com saldo abaixo do mínimo deve aparecer nos alertas');
+});
+
+test('dashboard retorna indicadores gerenciais', async () => {
+  const r = await req('GET', '/api/dashboard', undefined, tokens.admin);
+  assert.equal(r.status, 200, `dashboard falhou: ${JSON.stringify(r.body)}`);
+  assert.ok('faturamentoDia' in r.body, 'deve ter faturamentoDia');
+  assert.ok('valorEstoque' in r.body, 'deve ter valorEstoque');
+  assert.ok('lotesAVencer' in r.body, 'deve ter lotesAVencer');
+  assert.ok(Array.isArray(r.body.vendasPorDia), 'vendasPorDia deve ser array');
+  assert.ok(Array.isArray(r.body.maisVendidos), 'maisVendidos deve ser array');
+});
+
+test('auditoria lista registros com paginação e filtra por ação', async () => {
+  const lista = await req('GET', '/api/auditoria', undefined, tokens.admin);
+  assert.equal(lista.status, 200, `auditoria falhou: ${JSON.stringify(lista.body)}`);
+  assert.ok(Array.isArray(lista.body.dados), 'dados deve ser array');
+  assert.ok(typeof lista.body.total === 'number', 'total deve ser número');
+
+  const filtrado = await req('GET', '/api/auditoria?acao=INSERT', undefined, tokens.admin);
+  assert.equal(filtrado.status, 200);
+  assert.ok(filtrado.body.dados.every(r => r.acao === 'INSERT'), 'todos os registros filtrados devem ser INSERT');
+});

@@ -15,7 +15,9 @@ app.use('/api/clientes', require('./routes/clientes'));
 app.use('/api/produtos', require('./routes/produtos'));
 app.use('/api/lotes',    require('./routes/lotes'));
 app.use('/api/pedidos',  require('./routes/pedidos'));
-app.use('/api/estoque',  require('./routes/estoque'));
+app.use('/api/estoque',    require('./routes/estoque'));
+app.use('/api/dashboard',  require('./routes/dashboard'));
+app.use('/api/auditoria',  require('./routes/auditoria'));
 
 app.use(tratarErros);
 

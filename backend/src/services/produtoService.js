@@ -67,4 +67,8 @@ async function atualizar(id, dados, idAdmin) {
   }
 }
 
-module.exports = { listar, buscarPorId, criar, atualizar };
+async function listarAlertas() {
+  return produtoModel.listarAlertas(pool);
+}
+
+module.exports = { listar, buscarPorId, criar, atualizar, listarAlertas };

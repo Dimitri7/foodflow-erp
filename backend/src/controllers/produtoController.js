@@ -25,4 +25,10 @@ async function atualizar(req, res, next) {
   } catch (err) { next(err); }
 }
 
-module.exports = { listar, buscarPorId, criar, atualizar };
+async function alertas(req, res, next) {
+  try {
+    res.json(await produtoService.listarAlertas());
+  } catch (err) { next(err); }
+}
+
+module.exports = { listar, buscarPorId, criar, atualizar, alertas };

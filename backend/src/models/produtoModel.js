@@ -56,4 +56,22 @@ async function atualizar(db, id, { nome, categoria, unidade, precoUnitario, esto
   return rows[0] || null;
 }
 
-module.exports = { listar, buscarPorId, criar, atualizar };
+async function listarAlertas(db) {
+  const HOJE = `(NOW() AT TIME ZONE 'America/Fortaleza')::date`;
+  const { rows } = await db.query(
+    `SELECT p.id_produto, p.nome, p.categoria, p.unidade,
+            p.preco_unitario, p.estoque_minimo,
+            COALESCE(SUM(l.quantidade_disponivel)
+              FILTER (WHERE l.data_validade >= ${HOJE}), 0) AS saldo_vigente
+     FROM produtos p
+     LEFT JOIN lotes l ON l.id_produto = p.id_produto
+     WHERE p.ativo = true AND p.estoque_minimo > 0
+     GROUP BY p.id_produto
+     HAVING COALESCE(SUM(l.quantidade_disponivel)
+              FILTER (WHERE l.data_validade >= ${HOJE}), 0) <= p.estoque_minimo
+     ORDER BY p.nome`
+  );
+  return rows;
+}
+
+module.exports = { listar, buscarPorId, criar, atualizar, listarAlertas };

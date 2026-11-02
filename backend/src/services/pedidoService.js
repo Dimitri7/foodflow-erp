@@ -189,4 +189,67 @@ async function atualizarStatus(idPedido, novoStatus, idUsuario, perfil) {
   }
 }
 
-module.exports = { listar, buscarPorId, criarPedido, atualizarStatus };
+async function cancelarPedido(idPedido, motivo, idUsuario, perfil) {
+  if (!motivo || !motivo.trim()) throw Object.assign(new Error('Motivo de cancelamento é obrigatório'), { status: 400 });
+
+  const pedidoAtual = await pedidoModel.buscarPorId(pool, idPedido);
+  if (!pedidoAtual) throw Object.assign(new Error('Pedido não encontrado'), { status: 404 });
+  if (pedidoAtual.status === 'expedido') throw Object.assign(new Error('Pedido expedido não pode ser cancelado'), { status: 409 });
+  if (pedidoAtual.status === 'cancelado') throw Object.assign(new Error('Pedido já cancelado'), { status: 409 });
+  if (perfil === 'vendedor' && pedidoAtual.id_usuario !== idUsuario) {
+    throw Object.assign(new Error('Acesso negado'), { status: 403 });
+  }
+
+  const client = await pool.connect();
+  try {
+    await client.query('BEGIN');
+
+    const pedido = await pedidoModel.buscarParaLock(client, idPedido);
+    if (pedido.status === 'expedido') throw Object.assign(new Error('Pedido expedido não pode ser cancelado'), { status: 409 });
+    if (pedido.status === 'cancelado') throw Object.assign(new Error('Pedido já cancelado'), { status: 409 });
+
+    const itens = await pedidoModel.buscarItens(client, idPedido);
+    const idsProdutos = [...new Set(itens.map(i => i.id_produto))];
+
+    for (const item of itens) {
+      await client.query(
+        'UPDATE lotes SET quantidade_disponivel = quantidade_disponivel + $1 WHERE id_lote = $2',
+        [item.quantidade, item.id_lote]
+      );
+    }
+
+    await pedidoModel.atualizarStatus(client, idPedido, {
+      status: 'cancelado',
+      motivoCancelamento: motivo.trim(),
+      dataCancelamento: new Date(),
+    });
+
+    await pedidoModel.registrarHistoricoStatus(client, {
+      idPedido, statusAnterior: pedido.status, novoStatus: 'cancelado', idUsuario,
+    });
+
+    await auditoriaModel.registrar(client, {
+      idUsuario, acao: 'UPDATE', tabela: 'pedidos',
+      idRegistro: idPedido,
+      valorAnterior: { status: pedido.status },
+      valorNovo: { status: 'cancelado', motivo_cancelamento: motivo.trim() },
+    });
+
+    await client.query('COMMIT');
+
+    const io = getIo();
+    if (io) {
+      io.emit('pedido:status', { idPedido, statusAnterior: pedido.status, novoStatus: 'cancelado' });
+      io.emit('estoque:atualizado', { idsProdutos });
+    }
+
+    return pedidoModel.buscarPorId(pool, idPedido);
+  } catch (err) {
+    await client.query('ROLLBACK');
+    throw err;
+  } finally {
+    client.release();
+  }
+}
+
+module.exports = { listar, buscarPorId, criarPedido, atualizarStatus, cancelarPedido };

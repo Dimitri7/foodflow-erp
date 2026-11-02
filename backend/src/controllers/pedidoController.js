@@ -27,4 +27,11 @@ async function atualizarStatus(req, res, next) {
   } catch (err) { next(err); }
 }
 
-module.exports = { listar, buscarPorId, criar, atualizarStatus };
+async function cancelar(req, res, next) {
+  try {
+    const { motivo } = req.body;
+    res.json(await pedidoService.cancelarPedido(parseInt(req.params.id), motivo, req.usuario.id, req.usuario.perfil));
+  } catch (err) { next(err); }
+}
+
+module.exports = { listar, buscarPorId, criar, atualizarStatus, cancelar };
