@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import http from '../../api/http.js';
-import { formatData, formatMoeda } from '../../utils/format.js';
+import { formatDataLocal, formatMoeda } from '../../utils/format.js';
 import { useAuth } from '../../contexts/AuthContext.jsx';
 
 const COLUNAS = [
@@ -77,7 +77,7 @@ export default function Expedicao() {
                 <div className="d-flex justify-content-between align-items-start mb-1">
                   <strong className="small">#{p.id_pedido}</strong>
                   <span className="text-muted" style={{ fontSize: '0.7rem' }}>
-                    {formatData(p.data_criacao)}
+                    {formatDataLocal(p.data_criacao)}
                   </span>
                 </div>
                 <div className="small text-truncate mb-1" title={p.razao_social}>

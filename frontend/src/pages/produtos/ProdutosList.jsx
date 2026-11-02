@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { Link } from 'react-router-dom';
 import http from '../../api/http.js';
 import Paginacao from '../../components/Paginacao.jsx';
-import { formatMoeda } from '../../utils/format.js';
+import { formatMoeda, formatQuantidade } from '../../utils/format.js';
 import { useAuth } from '../../contexts/AuthContext.jsx';
 
 export default function ProdutosList() {
@@ -92,7 +92,7 @@ export default function ProdutosList() {
                     <td>{p.categoria ?? '—'}</td>
                     <td>{p.unidade}</td>
                     <td>{formatMoeda(p.preco_unitario)}</td>
-                    <td>{p.estoque_minimo}</td>
+                    <td>{formatQuantidade(p.estoque_minimo)}</td>
                     <td>
                       <span className={`badge ${p.ativo ? 'bg-success' : 'bg-secondary'}`}>
                         {p.ativo ? 'Ativo' : 'Inativo'}

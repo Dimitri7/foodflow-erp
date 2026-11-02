@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { Link } from 'react-router-dom';
 import http from '../../api/http.js';
 import Paginacao from '../../components/Paginacao.jsx';
-import { formatData } from '../../utils/format.js';
+import { formatData, formatQuantidade } from '../../utils/format.js';
 import { useAuth } from '../../contexts/AuthContext.jsx';
 
 const DIAS_ALERTA = Number(import.meta.env.VITE_DIAS_ALERTA_VENCIMENTO ?? 30);
@@ -105,7 +105,7 @@ export default function LotesList() {
                     <td>{l.codigo_lote}</td>
                     <td>{l.nome_produto}</td>
                     <td>{formatData(l.data_validade)}</td>
-                    <td>{l.quantidade_disponivel}</td>
+                    <td>{formatQuantidade(l.quantidade_disponivel)}</td>
                     <td>{formatData(l.data_entrada)}</td>
                     <td>{badgeLote(l)}</td>
                   </tr>

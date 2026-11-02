@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import http from '../../api/http.js';
-import { formatData, formatMoeda } from '../../utils/format.js';
+import { formatData, formatMoeda, formatQuantidade } from '../../utils/format.js';
 
 export default function PedidoForm() {
   const navigate = useNavigate();
@@ -171,7 +171,7 @@ export default function PedidoForm() {
                             <tr key={d.idLote}>
                               <td>{d.codigoLote}</td>
                               <td>{formatData(d.dataValidade)}</td>
-                              <td>{d.quantidade}</td>
+                              <td>{formatQuantidade(d.quantidade)}</td>
                             </tr>
                           ))}
                         </tbody>

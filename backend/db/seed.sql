@@ -31,8 +31,11 @@ INSERT INTO lotes (id_produto, codigo_lote, data_validade, data_entrada, quantid
   (1, 'L1', '2026-12-10', '2026-10-01', 30),
   (1, 'L2', '2027-01-20', '2026-10-01', 50),
   (2, 'L3', '2024-01-01', '2023-06-01', 20),
-  (2, 'L4', '2027-06-30', '2026-10-01', 25),
-  (3, 'L5', '2027-03-15', '2026-10-01',  2);
+  (2, 'L4', '2027-06-30', '2026-10-01', 25);
+
+-- L5 com validade próxima (~20 dias) para demonstrar o badge de alerta no frontend
+INSERT INTO lotes (id_produto, codigo_lote, data_validade, data_entrada, quantidade_disponivel) VALUES
+  (3, 'L5', CURRENT_DATE + INTERVAL '20 days', '2026-10-01', 2);
 
 -- Pedidos em status variados para o painel de expedição
 -- Debita de L4 (Feijão): 5+3+2+5 = 15; quantidade_disponivel já em 25 (40-15)

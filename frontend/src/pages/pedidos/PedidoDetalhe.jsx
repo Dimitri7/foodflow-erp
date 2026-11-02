@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import http from '../../api/http.js';
-import { formatData, formatDataHora, formatMoeda, formatStatus, corStatus, formatCNPJ } from '../../utils/format.js';
+import { formatData, formatDataHora, formatMoeda, formatQuantidade, formatStatus, corStatus, formatCNPJ } from '../../utils/format.js';
 import { useAuth } from '../../contexts/AuthContext.jsx';
 
 const PROXIMO_STATUS = {
@@ -108,9 +108,9 @@ export default function PedidoDetalhe() {
                   <td>{item.nome_produto}</td>
                   <td>{item.codigo_lote}</td>
                   <td>{formatData(item.data_validade)}</td>
-                  <td className="text-end">{item.quantidade}</td>
+                  <td className="text-end">{formatQuantidade(item.quantidade)}</td>
                   <td className="text-end">{formatMoeda(item.preco_unitario)}</td>
-                  <td className="text-end">{formatMoeda(item.preco_unitario * item.quantidade)}</td>
+                  <td className="text-end">{formatMoeda(Number(item.preco_unitario) * Number(item.quantidade))}</td>
                 </tr>
               ))}
             </tbody>
