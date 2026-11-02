@@ -2,12 +2,14 @@ import { NavLink, Outlet, useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext.jsx';
 
 const MENU = [
+  { path: '/dashboard', label: 'Dashboard',  perfis: ['admin'] },
   { path: '/clientes',  label: 'Clientes',   perfis: ['admin', 'vendedor'] },
   { path: '/produtos',  label: 'Produtos',   perfis: ['admin', 'vendedor', 'operador'] },
   { path: '/lotes',     label: 'Lotes',      perfis: ['admin', 'operador'] },
   { path: '/pedidos',   label: 'Pedidos',    perfis: ['admin', 'vendedor', 'operador'] },
   { path: '/expedicao', label: 'Expedição',  perfis: ['admin', 'operador'] },
   { path: '/usuarios',  label: 'Usuários',   perfis: ['admin'] },
+  { path: '/auditoria', label: 'Auditoria',  perfis: ['admin'] },
 ];
 
 export default function Layout() {

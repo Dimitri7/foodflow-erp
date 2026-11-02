@@ -15,6 +15,10 @@ export default function PedidoDetalhe() {
   const [pedido, setPedido] = useState(null);
   const [erro, setErro] = useState('');
   const [avancar, setAvancar] = useState(false);
+  const [modalCancelar, setModalCancelar] = useState(false);
+  const [motivo, setMotivo] = useState('');
+  const [cancelando, setCancelando] = useState(false);
+  const [erroCancelar, setErroCancelar] = useState('');
   const { perfil, socket, registrarReconexao } = useAuth();
 
   const carregar = useCallback(async () => {
@@ -52,9 +56,24 @@ export default function PedidoDetalhe() {
     }
   }
 
+  async function cancelarPedido() {
+    if (!motivo.trim()) { setErroCancelar('Motivo é obrigatório'); return; }
+    setErroCancelar(''); setCancelando(true);
+    try {
+      await http.patch(`/api/pedidos/${id}/cancelar`, { motivo: motivo.trim() });
+      setModalCancelar(false); setMotivo(''); await carregar();
+    } catch (err) {
+      setErroCancelar(err.response?.data?.erro ?? 'Erro ao cancelar pedido');
+    } finally { setCancelando(false); }
+  }
+
   if (!pedido) return <div className="text-muted">Carregando...</div>;
 
   const podeAvancar = (perfil === 'operador' || perfil === 'admin') && PROXIMO_STATUS[pedido.status];
+  const podeCancelar =
+    pedido.status !== 'expedido' &&
+    pedido.status !== 'cancelado' &&
+    (perfil === 'admin' || perfil === 'vendedor');
 
   return (
     <div style={{ maxWidth: 800 }}>
@@ -124,6 +143,24 @@ export default function PedidoDetalhe() {
         </div>
       </div>
 
+      {pedido.status === 'cancelado' && (pedido.motivo_cancelamento || pedido.data_cancelamento) && (
+        <div className="card border-0 shadow-sm mb-3 border-danger">
+          <div className="card-header bg-white fw-semibold text-danger">Cancelamento</div>
+          <div className="card-body">
+            {pedido.motivo_cancelamento && (
+              <div className="mb-1">
+                <span className="text-muted small">Motivo: </span>{pedido.motivo_cancelamento}
+              </div>
+            )}
+            {pedido.data_cancelamento && (
+              <div>
+                <span className="text-muted small">Cancelado em: </span>{formatDataHora(pedido.data_cancelamento)}
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
       <div className="card border-0 shadow-sm mb-3">
         <div className="card-header bg-white fw-semibold">Histórico de status</div>
         <ul className="list-group list-group-flush">
@@ -152,6 +189,51 @@ export default function PedidoDetalhe() {
           {avancar ? 'Aguarde...' : `Avançar para: ${formatStatus(PROXIMO_STATUS[pedido.status])}`}
         </button>
       )}
+      {podeCancelar && (
+        <button
+          className="btn btn-outline-danger ms-2"
+          onClick={() => { setErroCancelar(''); setMotivo(''); setModalCancelar(true); }}
+        >
+          Cancelar pedido
+        </button>
+      )}
+
+      {modalCancelar && (
+        <div className="modal d-block" tabIndex="-1">
+          <div className="modal-dialog">
+            <div className="modal-content">
+              <div className="modal-header">
+                <h5 className="modal-title">Cancelar pedido #{pedido.id_pedido}</h5>
+                <button type="button" className="btn-close" onClick={() => setModalCancelar(false)} />
+              </div>
+              <div className="modal-body">
+                {erroCancelar && <div className="alert alert-danger py-2">{erroCancelar}</div>}
+                <label className="form-label">Motivo do cancelamento *</label>
+                <textarea
+                  className="form-control"
+                  rows={3}
+                  value={motivo}
+                  onChange={(e) => setMotivo(e.target.value)}
+                  placeholder="Informe o motivo..."
+                />
+              </div>
+              <div className="modal-footer">
+                <button
+                  className="btn btn-outline-secondary"
+                  onClick={() => setModalCancelar(false)}
+                  disabled={cancelando}
+                >
+                  Fechar
+                </button>
+                <button className="btn btn-danger" onClick={cancelarPedido} disabled={cancelando}>
+                  {cancelando ? 'Cancelando...' : 'Confirmar cancelamento'}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+      {modalCancelar && <div className="modal-backdrop show" />}
     </div>
   );
 }

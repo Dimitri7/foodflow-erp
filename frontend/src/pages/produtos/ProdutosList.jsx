@@ -11,6 +11,7 @@ export default function ProdutosList() {
   const [pagina, setPagina] = useState(1);
   const [busca, setBusca] = useState('');
   const [buscaInput, setBuscaInput] = useState('');
+  const [alertasIds, setAlertasIds] = useState(new Set());
   const limite = 20;
   const { perfil, registrarReconexao } = useAuth();
 
@@ -26,6 +27,14 @@ export default function ProdutosList() {
     carregar();
     return registrarReconexao(carregar);
   }, [carregar, registrarReconexao]);
+
+  useEffect(() => {
+    if (perfil !== 'admin' && perfil !== 'operador') return;
+    // alertas retorna array simples, não { dados }
+    http.get('/api/produtos/alertas')
+      .then(({ data }) => setAlertasIds(new Set(data.map((a) => a.id_produto))))
+      .catch(() => {});
+  }, [dados, perfil]);
 
   function pesquisar(e) {
     e.preventDefault();
@@ -88,7 +97,12 @@ export default function ProdutosList() {
               ) : (
                 dados.map((p) => (
                   <tr key={p.id_produto}>
-                    <td>{p.nome}</td>
+                    <td>
+                      {p.nome}
+                      {alertasIds.has(p.id_produto) && (
+                        <span className="badge bg-danger ms-1">Abaixo do mínimo</span>
+                      )}
+                    </td>
                     <td>{p.categoria ?? '—'}</td>
                     <td>{p.unidade}</td>
                     <td>{formatMoeda(p.preco_unitario)}</td>

@@ -1,5 +1,6 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider } from './contexts/AuthContext.jsx';
+import { useAuth } from './contexts/AuthContext.jsx';
 import RotaProtegida from './components/RotaProtegida.jsx';
 import Layout from './components/Layout.jsx';
 import Login from './pages/Login.jsx';
@@ -9,12 +10,20 @@ import ProdutosList from './pages/produtos/ProdutosList.jsx';
 import ProdutoForm from './pages/produtos/ProdutoForm.jsx';
 import LotesList from './pages/lotes/LotesList.jsx';
 import LoteForm from './pages/lotes/LoteForm.jsx';
+import LoteRastreio from './pages/lotes/LoteRastreio.jsx';
 import PedidosList from './pages/pedidos/PedidosList.jsx';
 import PedidoForm from './pages/pedidos/PedidoForm.jsx';
 import PedidoDetalhe from './pages/pedidos/PedidoDetalhe.jsx';
 import Expedicao from './pages/expedicao/Expedicao.jsx';
 import UsuariosList from './pages/usuarios/UsuariosList.jsx';
 import UsuarioForm from './pages/usuarios/UsuarioForm.jsx';
+import Dashboard from './pages/dashboard/Dashboard.jsx';
+import Auditoria from './pages/auditoria/Auditoria.jsx';
+
+function RedirecaoInicial() {
+  const { perfil } = useAuth();
+  return <Navigate to={perfil === 'admin' ? '/dashboard' : '/pedidos'} replace />;
+}
 
 export default function App() {
   return (
@@ -30,7 +39,7 @@ export default function App() {
               </RotaProtegida>
             }
           >
-            <Route index element={<Navigate to="/pedidos" replace />} />
+            <Route index element={<RedirecaoInicial />} />
             <Route
               path="clientes"
               element={
@@ -141,6 +150,30 @@ export default function App() {
               element={
                 <RotaProtegida perfisPermitidos={['admin']}>
                   <UsuarioForm />
+                </RotaProtegida>
+              }
+            />
+            <Route
+              path="dashboard"
+              element={
+                <RotaProtegida perfisPermitidos={['admin']}>
+                  <Dashboard />
+                </RotaProtegida>
+              }
+            />
+            <Route
+              path="lotes/:id/rastreio"
+              element={
+                <RotaProtegida perfisPermitidos={['admin']}>
+                  <LoteRastreio />
+                </RotaProtegida>
+              }
+            />
+            <Route
+              path="auditoria"
+              element={
+                <RotaProtegida perfisPermitidos={['admin']}>
+                  <Auditoria />
                 </RotaProtegida>
               }
             />

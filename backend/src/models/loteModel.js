@@ -1,6 +1,6 @@
 const HOJE_FORTALEZA = `(NOW() AT TIME ZONE 'America/Fortaleza')::date`;
 
-async function listar(db, { pagina = 1, limite = 20, busca = '', idProduto = null } = {}) {
+async function listar(db, { pagina = 1, limite = 20, busca = '', idProduto = null, situacao = null, diasAlerta = 30 } = {}) {
   const offset = (pagina - 1) * limite;
   const termo = `%${busca}%`;
   const conditions = ['(l.codigo_lote ILIKE $1 OR p.nome ILIKE $1)'];
@@ -9,6 +9,18 @@ async function listar(db, { pagina = 1, limite = 20, busca = '', idProduto = nul
   if (idProduto) {
     conditions.push(`l.id_produto = $${params.length + 1}`);
     params.push(idProduto);
+  }
+
+  if (situacao === 'vencido') {
+    conditions.push(`l.data_validade < ${HOJE_FORTALEZA}`);
+  } else if (situacao === 'vigente') {
+    conditions.push(`l.data_validade >= ${HOJE_FORTALEZA}`);
+    conditions.push(`l.quantidade_disponivel > 0`);
+  } else if (situacao === 'vencendo') {
+    conditions.push(`l.data_validade >= ${HOJE_FORTALEZA}`);
+    conditions.push(`l.data_validade <= ${HOJE_FORTALEZA} + ($${params.length + 1} || ' days')::interval`);
+    conditions.push(`l.quantidade_disponivel > 0`);
+    params.push(diasAlerta);
   }
 
   const where = 'WHERE ' + conditions.join(' AND ');

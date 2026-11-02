@@ -13,7 +13,9 @@ async function listar(query) {
   const limite = parseInt(query.limite) || 20;
   const busca = query.busca || '';
   const idProduto = query.idProduto ? parseInt(query.idProduto) : null;
-  const result = await loteModel.listar(pool, { pagina, limite, busca, idProduto });
+  const situacao = query.situacao || null;
+  const diasAlerta = parseInt(process.env.DIAS_ALERTA_VENCIMENTO) || 30;
+  const result = await loteModel.listar(pool, { pagina, limite, busca, idProduto, situacao, diasAlerta });
   return { ...result, pagina, limite };
 }
 

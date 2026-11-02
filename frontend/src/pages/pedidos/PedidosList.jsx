@@ -11,6 +11,7 @@ const STATUS_OPCOES = [
   { value: 'em_separacao', label: 'Em separação' },
   { value: 'separado', label: 'Separado' },
   { value: 'expedido', label: 'Expedido' },
+  { value: 'cancelado', label: 'Cancelado' },
 ];
 
 export default function PedidosList() {
@@ -20,6 +21,8 @@ export default function PedidosList() {
   const [busca, setBusca] = useState('');
   const [buscaInput, setBuscaInput] = useState('');
   const [status, setStatus] = useState('');
+  const [dataInicio, setDataInicio] = useState('');
+  const [dataFim, setDataFim] = useState('');
   const limite = 20;
   const { perfil, socket, registrarReconexao } = useAuth();
 
@@ -27,10 +30,12 @@ export default function PedidosList() {
     const params = { pagina, limite };
     if (busca) params.busca = busca;
     if (status) params.status = status;
+    if (dataInicio) params.dataInicio = dataInicio;
+    if (dataFim) params.dataFim = dataFim;
     const { data } = await http.get('/api/pedidos', { params });
     setDados(data.dados);
     setTotal(data.total);
-  }, [pagina, busca, status]);
+  }, [pagina, busca, status, dataInicio, dataFim]);
 
   useEffect(() => {
     carregar();
@@ -93,6 +98,20 @@ export default function PedidosList() {
             <option key={o.value} value={o.value}>{o.label}</option>
           ))}
         </select>
+        <input
+          type="date"
+          className="form-control form-control-sm"
+          style={{ maxWidth: 160 }}
+          value={dataInicio}
+          onChange={(e) => { setDataInicio(e.target.value); setPagina(1); }}
+        />
+        <input
+          type="date"
+          className="form-control form-control-sm"
+          style={{ maxWidth: 160 }}
+          value={dataFim}
+          onChange={(e) => { setDataFim(e.target.value); setPagina(1); }}
+        />
       </div>
 
       <div className="card border-0 shadow-sm">

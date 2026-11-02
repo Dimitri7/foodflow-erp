@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import http from '../../api/http.js';
 import Paginacao from '../../components/Paginacao.jsx';
 import { formatData, formatQuantidade } from '../../utils/format.js';
@@ -24,16 +24,25 @@ export default function LotesList() {
   const [pagina, setPagina] = useState(1);
   const [busca, setBusca] = useState('');
   const [buscaInput, setBuscaInput] = useState('');
+  const [situacao, setSituacao] = useState('');
+  const [modalAjuste, setModalAjuste] = useState(false);
+  const [loteAjuste, setLoteAjuste] = useState(null);
+  const [ajusteQtd, setAjusteQtd] = useState('');
+  const [ajusteJust, setAjusteJust] = useState('');
+  const [erroAjuste, setErroAjuste] = useState('');
+  const [salvandoAjuste, setSalvandoAjuste] = useState(false);
   const limite = 20;
-  const { registrarReconexao, socket } = useAuth();
+  const { perfil, registrarReconexao, socket } = useAuth();
+  const navigate = useNavigate();
 
   const carregar = useCallback(async () => {
     const params = { pagina, limite };
     if (busca) params.busca = busca;
+    if (situacao) params.situacao = situacao;
     const { data } = await http.get('/api/lotes', { params });
     setDados(data.dados);
     setTotal(data.total);
-  }, [pagina, busca]);
+  }, [pagina, busca, situacao]);
 
   useEffect(() => {
     carregar();
@@ -52,11 +61,44 @@ export default function LotesList() {
     setBusca(buscaInput);
   }
 
+  async function salvarAjuste() {
+    if (!ajusteJust || ajusteJust.trim().length < 10) {
+      setErroAjuste('Justificativa deve ter ao menos 10 caracteres'); return;
+    }
+    setErroAjuste(''); setSalvandoAjuste(true);
+    try {
+      await http.put(`/api/lotes/${loteAjuste.id_lote}/ajuste`, {
+        quantidade: Number(ajusteQtd), justificativa: ajusteJust.trim(),
+      });
+      setModalAjuste(false); setLoteAjuste(null); setAjusteQtd(''); setAjusteJust('');
+      await carregar();
+    } catch (err) {
+      setErroAjuste(err.response?.data?.erro ?? 'Erro ao ajustar estoque');
+    } finally { setSalvandoAjuste(false); }
+  }
+
   return (
     <div>
       <div className="d-flex justify-content-between align-items-center mb-3">
         <h2 className="h5 fw-bold mb-0">Lotes</h2>
         <Link to="/lotes/novo" className="btn btn-primary btn-sm">Novo lote</Link>
+      </div>
+
+      <div className="btn-group mb-3">
+        {[
+          { key: '', label: 'Todos' },
+          { key: 'vencendo', label: 'Vencendo' },
+          { key: 'vencido', label: 'Vencidos' },
+        ].map(({ key, label }) => (
+          <button
+            key={key}
+            type="button"
+            className={`btn btn-sm ${situacao === key ? 'btn-primary' : 'btn-outline-primary'}`}
+            onClick={() => { setSituacao(key); setPagina(1); }}
+          >
+            {label}
+          </button>
+        ))}
       </div>
 
       <form className="d-flex gap-2 mb-3" onSubmit={pesquisar}>
@@ -90,12 +132,13 @@ export default function LotesList() {
                 <th>Qtd. disponível</th>
                 <th>Entrada</th>
                 <th>Status</th>
+                <th>Ações</th>
               </tr>
             </thead>
             <tbody>
               {dados.length === 0 ? (
                 <tr>
-                  <td colSpan={6} className="text-center text-muted py-4">
+                  <td colSpan={7} className="text-center text-muted py-4">
                     Nenhum lote encontrado
                   </td>
                 </tr>
@@ -108,6 +151,28 @@ export default function LotesList() {
                     <td>{formatQuantidade(l.quantidade_disponivel)}</td>
                     <td>{formatData(l.data_entrada)}</td>
                     <td>{badgeLote(l)}</td>
+                    <td className="d-flex gap-1">
+                      {(perfil === 'admin' || perfil === 'operador') && (
+                        <button
+                          className="btn btn-outline-secondary btn-sm"
+                          onClick={() => {
+                            setLoteAjuste({ id_lote: l.id_lote, codigo_lote: l.codigo_lote });
+                            setAjusteQtd(String(l.quantidade_disponivel));
+                            setAjusteJust(''); setErroAjuste(''); setModalAjuste(true);
+                          }}
+                        >
+                          Ajustar
+                        </button>
+                      )}
+                      {perfil === 'admin' && (
+                        <button
+                          className="btn btn-outline-primary btn-sm"
+                          onClick={() => navigate(`/lotes/${l.id_lote}/rastreio`)}
+                        >
+                          Rastrear
+                        </button>
+                      )}
+                    </td>
                   </tr>
                 ))
               )}
@@ -119,6 +184,59 @@ export default function LotesList() {
           <Paginacao pagina={pagina} limite={limite} total={total} onChange={setPagina} />
         </div>
       </div>
+
+      {modalAjuste && loteAjuste && (
+        <div className="modal d-block" tabIndex="-1">
+          <div className="modal-dialog">
+            <div className="modal-content">
+              <div className="modal-header">
+                <h5 className="modal-title">Ajustar estoque — {loteAjuste.codigo_lote}</h5>
+                <button type="button" className="btn-close" onClick={() => setModalAjuste(false)} />
+              </div>
+              <div className="modal-body">
+                {erroAjuste && <div className="alert alert-danger py-2">{erroAjuste}</div>}
+                <div className="mb-3">
+                  <label className="form-label">Nova quantidade *</label>
+                  <input
+                    type="number"
+                    min="0"
+                    step="0.001"
+                    className="form-control"
+                    value={ajusteQtd}
+                    onChange={(e) => setAjusteQtd(e.target.value)}
+                  />
+                </div>
+                <div className="mb-3">
+                  <label className="form-label">
+                    Justificativa *{' '}
+                    <span className="text-muted small">({ajusteJust.length} caracteres, mín. 10)</span>
+                  </label>
+                  <textarea
+                    className="form-control"
+                    rows={3}
+                    value={ajusteJust}
+                    onChange={(e) => setAjusteJust(e.target.value)}
+                    placeholder="Descreva o motivo do ajuste..."
+                  />
+                </div>
+              </div>
+              <div className="modal-footer">
+                <button
+                  className="btn btn-outline-secondary"
+                  onClick={() => setModalAjuste(false)}
+                  disabled={salvandoAjuste}
+                >
+                  Fechar
+                </button>
+                <button className="btn btn-primary" onClick={salvarAjuste} disabled={salvandoAjuste}>
+                  {salvandoAjuste ? 'Salvando...' : 'Salvar ajuste'}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+      {modalAjuste && <div className="modal-backdrop show" />}
     </div>
   );
 }
