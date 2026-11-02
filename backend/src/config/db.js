@@ -4,9 +4,6 @@ const { Pool } = require('pg');
 const connectionString = (process.env.DATABASE_URL || '')
   .replace(/sslmode=(prefer|require|verify-ca)/g, 'sslmode=verify-full');
 
-const pool = new Pool({
-  connectionString,
-  ssl: { rejectUnauthorized: false },
-});
+const pool = new Pool({ connectionString });
 
 module.exports = pool;

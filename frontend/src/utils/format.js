@@ -11,14 +11,12 @@ export function formatData(iso) {
   return `${d}/${m}/${y}`;
 }
 
-// Para timestamps completos: converte para America/Fortaleza e exibe data + hora.
 export function formatDataHora(iso) {
   if (!iso) return '—';
   const dt = new Date(iso);
   return dt.toLocaleString('pt-BR', { timeZone: 'America/Fortaleza' });
 }
 
-// Para timestamps completos quando só a data é necessária (ex: Kanban).
 export function formatDataLocal(iso) {
   if (!iso) return '—';
   const dt = new Date(iso);
@@ -29,7 +27,6 @@ export function formatMoeda(valor) {
   return Number(valor).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
 }
 
-// Formata quantidades sem zeros desnecessários: 30.000 → "30", 12.500 → "12,5".
 export function formatQuantidade(valor) {
   return Number(valor).toLocaleString('pt-BR', { minimumFractionDigits: 0, maximumFractionDigits: 3 });
 }

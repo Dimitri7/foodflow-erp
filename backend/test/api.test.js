@@ -71,8 +71,6 @@ before(async () => {
 
 after(() => new Promise(resolve => servidor.close(resolve)));
 
-// --- testes extras (auth e detalhe) ---
-
 test('login correto retorna token', async () => {
   const r = await req('POST', '/api/auth/login', { email: 'admin@foodflow.com', senha: 'foodflow123' });
   assert.equal(r.status, 200);
@@ -109,8 +107,6 @@ test('detalhe do pedido traz itens com lote e validade e histórico', async () =
   assert.ok(r.body.itens[0].data_validade);
   assert.ok(r.body.historico.length > 0);
 });
-
-// --- cenários de aceitação (seção 6.5) ---
 
 test('CA01 - pedido de 20 un usa L1, que fica com 10', async () => {
   const idProduto = await criarProduto('Produto CA01');

@@ -125,7 +125,7 @@ async function criarPedido(idUsuario, { idCliente, itens }) {
       io.emit('estoque:atualizado', { idsProdutos: [...porProduto.keys()] });
     }
 
-    return buscarPorId(pedido.id_pedido, idUsuario, perfil => 'admin');
+    return buscarPorId(pedido.id_pedido, idUsuario, 'admin');
   } catch (err) {
     await client.query('ROLLBACK');
     throw err;
