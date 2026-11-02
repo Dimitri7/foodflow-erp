@@ -91,3 +91,13 @@ CREATE INDEX IF NOT EXISTS idx_pedidos_status            ON pedidos (status);
 CREATE INDEX IF NOT EXISTS idx_historico_pedido          ON historico_status_pedido (id_pedido);
 CREATE INDEX IF NOT EXISTS idx_auditoria_usuario         ON logs_auditoria (id_usuario);
 CREATE INDEX IF NOT EXISTS idx_auditoria_tabela          ON logs_auditoria (tabela_afetada);
+
+CREATE TABLE IF NOT EXISTS tokens_redefinicao_senha (
+  id          SERIAL PRIMARY KEY,
+  id_usuario  INT NOT NULL REFERENCES usuarios (id_usuario),
+  token_hash  VARCHAR(64) NOT NULL,
+  expira_em   TIMESTAMPTZ NOT NULL,
+  usado       BOOLEAN NOT NULL DEFAULT false,
+  created_at  TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+CREATE INDEX IF NOT EXISTS idx_tokens_redefinicao ON tokens_redefinicao_senha (token_hash);

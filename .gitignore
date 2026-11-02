@@ -4,3 +4,4 @@ GUIA_DE_DEFESA.md
 dist/
 *.log
 .claude/settings.local.json
+backend/backups/

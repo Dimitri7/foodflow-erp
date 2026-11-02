@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext.jsx';
 
 export default function Login() {
@@ -60,6 +60,9 @@ export default function Login() {
                 {carregando ? 'Entrando...' : 'Entrar'}
               </button>
             </form>
+            <div className="text-center mt-3">
+              <Link to="/esqueci-senha" className="small text-muted">Esqueci minha senha</Link>
+            </div>
           </div>
         </div>
       </div>

@@ -58,7 +58,7 @@ cd backend
 npm test
 ```
 
-Roda a suite de 16 testes de aceitação. O banco é resetado antes e depois automaticamente.
+Roda a suite de 27 testes de aceitação (inclui RF18). O banco é resetado antes e depois automaticamente.
 
 ## Usuários de teste
 
@@ -71,6 +71,34 @@ Senha de todos: `foodflow123`
 | `vendedor2@foodflow.com` | Vendedor |
 | `operador@foodflow.com` | Operador |
 
-## O que fica para a entrega final
+## Recuperação de senha
 
-RF7 (cancelamento de pedido), RF8 (relatórios), RF14–RF18 (dashboard, alertas, valor em estoque, exportação, recuperação de senha), documentação Swagger, backup automático e cobertura de testes automatizados.
+Em desenvolvimento, o envio de e-mail usa o serviço Ethereal (conta de teste criada automaticamente). O link para visualizar o e-mail enviado aparece no terminal do servidor:
+
+```
+Visualize o e-mail: https://ethereal.email/message/...
+```
+
+Para produção, substitua as variáveis de e-mail no `.env` por um servidor SMTP real.
+
+## Backup
+
+```bash
+cd backend
+npm run backup          # cria backend/backups/backup_<data>.json
+npm run restore         # restaura o backup mais recente
+npm run restore -- backend/backups/backup_<data>.json  # restaura arquivo específico
+```
+
+Os 7 backups mais recentes são mantidos automaticamente. Para agendar backup diário às 02:00, defina `BACKUP_AUTOMATICO=true` no `.env`.
+
+## Documentação da API
+
+Com o servidor rodando, acesse `http://localhost:3001/api/docs` para a interface Swagger com todas as rotas, perfis e schemas.
+
+## Lint
+
+```bash
+cd backend && npm run lint
+cd frontend && npm run lint
+```

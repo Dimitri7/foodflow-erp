@@ -11,5 +11,7 @@ const limiteLogin = rateLimit({
 });
 
 router.post('/login', limiteLogin, authController.login);
+router.post('/recuperar-senha', authController.recuperarSenha);
+router.post('/redefinir-senha', authController.redefinirSenha);
 
 module.exports = router;

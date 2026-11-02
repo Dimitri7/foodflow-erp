@@ -1,0 +1,633 @@
+openapi: 3.0.3
+info:
+  title: FoodFlow ERP
+  description: API do sistema de distribuição de alimentos — UNIFOR
+  version: 1.0.0
+
+servers:
+  - url: http://localhost:3001
+    description: Desenvolvimento
+
+components:
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+  schemas:
+    Erro:
+      type: object
+      properties:
+        erro:
+          type: string
+      example:
+        erro: Mensagem de erro
+
+    Paginacao:
+      type: object
+      properties:
+        dados:
+          type: array
+          items: {}
+        total:
+          type: integer
+        pagina:
+          type: integer
+        limite:
+          type: integer
+
+    Usuario:
+      type: object
+      properties:
+        id_usuario: { type: integer }
+        nome: { type: string }
+        email: { type: string }
+        perfil: { type: string, enum: [admin, vendedor, operador] }
+        ativo: { type: boolean }
+
+    Cliente:
+      type: object
+      properties:
+        id_cliente: { type: integer }
+        razao_social: { type: string }
+        cnpj: { type: string }
+        telefone: { type: string }
+        endereco: { type: string }
+        ativo: { type: boolean }
+
+    Produto:
+      type: object
+      properties:
+        id_produto: { type: integer }
+        nome: { type: string }
+        categoria: { type: string }
+        unidade: { type: string }
+        preco_unitario: { type: number }
+        estoque_minimo: { type: number }
+        ativo: { type: boolean }
+
+    Lote:
+      type: object
+      properties:
+        id_lote: { type: integer }
+        id_produto: { type: integer }
+        codigo_lote: { type: string }
+        data_validade: { type: string, format: date }
+        quantidade_disponivel: { type: number }
+        data_entrada: { type: string, format: date }
+
+    Pedido:
+      type: object
+      properties:
+        id_pedido: { type: integer }
+        id_cliente: { type: integer }
+        id_usuario: { type: integer }
+        data_criacao: { type: string, format: date-time }
+        status:
+          type: string
+          enum: [aguardando_separacao, em_separacao, separado, expedido, cancelado]
+        valor_total: { type: number }
+
+    LogAuditoria:
+      type: object
+      properties:
+        id_log: { type: integer }
+        id_usuario: { type: integer }
+        nome_usuario: { type: string }
+        acao: { type: string, enum: [INSERT, UPDATE] }
+        tabela_afetada: { type: string }
+        id_registro: { type: integer }
+        data_hora: { type: string, format: date-time }
+        valor_anterior: { type: object }
+        valor_novo: { type: object }
+
+security:
+  - BearerAuth: []
+
+paths:
+  /api/auth/login:
+    post:
+      tags: [Auth]
+      summary: Autenticar usuário
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [email, senha]
+              properties:
+                email: { type: string, format: email }
+                senha: { type: string }
+      responses:
+        '200':
+          description: Token JWT
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  token: { type: string }
+                  perfil: { type: string }
+                  nome: { type: string }
+        '400': { description: Campos obrigatórios ausentes, content: { application/json: { schema: { $ref: '#/components/schemas/Erro' } } } }
+        '401': { description: Credenciais inválidas, content: { application/json: { schema: { $ref: '#/components/schemas/Erro' } } } }
+
+  /api/auth/recuperar-senha:
+    post:
+      tags: [Auth]
+      summary: Solicitar redefinição de senha
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [email]
+              properties:
+                email: { type: string, format: email }
+      responses:
+        '200':
+          description: Resposta genérica (não revela se o e-mail existe)
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  mensagem: { type: string }
+        '400': { description: E-mail ausente, content: { application/json: { schema: { $ref: '#/components/schemas/Erro' } } } }
+
+  /api/auth/redefinir-senha:
+    post:
+      tags: [Auth]
+      summary: Redefinir senha com token
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [token, novaSenha]
+              properties:
+                token: { type: string }
+                novaSenha: { type: string, minLength: 8 }
+      responses:
+        '200':
+          description: Senha redefinida com sucesso
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  mensagem: { type: string }
+        '400': { description: Token inválido, expirado ou já utilizado, content: { application/json: { schema: { $ref: '#/components/schemas/Erro' } } } }
+
+  /api/usuarios:
+    get:
+      tags: [Usuários]
+      summary: Listar usuários
+      security: [{ BearerAuth: [] }]
+      parameters:
+        - { name: pagina, in: query, schema: { type: integer, default: 1 } }
+        - { name: limite, in: query, schema: { type: integer, default: 20 } }
+        - { name: busca, in: query, schema: { type: string } }
+      responses:
+        '200': { description: Lista paginada, content: { application/json: { schema: { $ref: '#/components/schemas/Paginacao' } } } }
+        '401': { description: Não autenticado, content: { application/json: { schema: { $ref: '#/components/schemas/Erro' } } } }
+        '403': { description: Sem permissão (somente admin), content: { application/json: { schema: { $ref: '#/components/schemas/Erro' } } } }
+    post:
+      tags: [Usuários]
+      summary: Criar usuário
+      security: [{ BearerAuth: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [nome, email, senha, perfil]
+              properties:
+                nome: { type: string }
+                email: { type: string, format: email }
+                senha: { type: string, minLength: 8 }
+                perfil: { type: string, enum: [admin, vendedor, operador] }
+      responses:
+        '201': { description: Usuário criado, content: { application/json: { schema: { $ref: '#/components/schemas/Usuario' } } } }
+        '409': { description: E-mail duplicado, content: { application/json: { schema: { $ref: '#/components/schemas/Erro' } } } }
+
+  /api/usuarios/{id}:
+    get:
+      tags: [Usuários]
+      summary: Buscar usuário por ID
+      security: [{ BearerAuth: [] }]
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: integer } }
+      responses:
+        '200': { description: Usuário, content: { application/json: { schema: { $ref: '#/components/schemas/Usuario' } } } }
+        '404': { description: Não encontrado, content: { application/json: { schema: { $ref: '#/components/schemas/Erro' } } } }
+    put:
+      tags: [Usuários]
+      summary: Atualizar usuário
+      security: [{ BearerAuth: [] }]
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: integer } }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                nome: { type: string }
+                email: { type: string }
+                perfil: { type: string }
+      responses:
+        '200': { description: Usuário atualizado, content: { application/json: { schema: { $ref: '#/components/schemas/Usuario' } } } }
+
+  /api/usuarios/{id}/status:
+    patch:
+      tags: [Usuários]
+      summary: Ativar ou desativar usuário
+      security: [{ BearerAuth: [] }]
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: integer } }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [ativo]
+              properties:
+                ativo: { type: boolean }
+      responses:
+        '200': { description: Status atualizado }
+        '409': { description: Último admin não pode ser desativado, content: { application/json: { schema: { $ref: '#/components/schemas/Erro' } } } }
+
+  /api/clientes:
+    get:
+      tags: [Clientes]
+      summary: Listar clientes
+      security: [{ BearerAuth: [] }]
+      parameters:
+        - { name: pagina, in: query, schema: { type: integer } }
+        - { name: limite, in: query, schema: { type: integer } }
+        - { name: busca, in: query, schema: { type: string } }
+      responses:
+        '200': { description: Lista paginada, content: { application/json: { schema: { $ref: '#/components/schemas/Paginacao' } } } }
+    post:
+      tags: [Clientes]
+      summary: Criar cliente
+      security: [{ BearerAuth: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [razaoSocial, cnpj]
+              properties:
+                razaoSocial: { type: string }
+                cnpj: { type: string }
+                telefone: { type: string }
+                endereco: { type: string }
+      responses:
+        '201': { description: Cliente criado, content: { application/json: { schema: { $ref: '#/components/schemas/Cliente' } } } }
+        '409': { description: CNPJ duplicado, content: { application/json: { schema: { $ref: '#/components/schemas/Erro' } } } }
+
+  /api/clientes/{id}:
+    get:
+      tags: [Clientes]
+      summary: Buscar cliente por ID
+      security: [{ BearerAuth: [] }]
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: integer } }
+      responses:
+        '200': { description: Cliente, content: { application/json: { schema: { $ref: '#/components/schemas/Cliente' } } } }
+    put:
+      tags: [Clientes]
+      summary: Atualizar cliente
+      security: [{ BearerAuth: [] }]
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: integer } }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                razaoSocial: { type: string }
+                cnpj: { type: string }
+                telefone: { type: string }
+                endereco: { type: string }
+                ativo: { type: boolean }
+      responses:
+        '200': { description: Cliente atualizado, content: { application/json: { schema: { $ref: '#/components/schemas/Cliente' } } } }
+
+  /api/produtos:
+    get:
+      tags: [Produtos]
+      summary: Listar produtos
+      security: [{ BearerAuth: [] }]
+      parameters:
+        - { name: pagina, in: query, schema: { type: integer } }
+        - { name: limite, in: query, schema: { type: integer } }
+        - { name: busca, in: query, schema: { type: string } }
+        - { name: ativo, in: query, schema: { type: boolean } }
+      responses:
+        '200': { description: Lista paginada, content: { application/json: { schema: { $ref: '#/components/schemas/Paginacao' } } } }
+    post:
+      tags: [Produtos]
+      summary: Criar produto (somente admin)
+      security: [{ BearerAuth: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [nome, unidade, precoUnitario]
+              properties:
+                nome: { type: string }
+                categoria: { type: string }
+                unidade: { type: string }
+                precoUnitario: { type: number }
+                estoqueMinimo: { type: number }
+      responses:
+        '201': { description: Produto criado, content: { application/json: { schema: { $ref: '#/components/schemas/Produto' } } } }
+
+  /api/produtos/alertas:
+    get:
+      tags: [Produtos]
+      summary: Produtos com saldo abaixo do estoque mínimo
+      security: [{ BearerAuth: [] }]
+      responses:
+        '200': { description: Lista de produtos em alerta, content: { application/json: { schema: { type: array, items: { $ref: '#/components/schemas/Produto' } } } } }
+
+  /api/produtos/{id}:
+    get:
+      tags: [Produtos]
+      summary: Buscar produto por ID
+      security: [{ BearerAuth: [] }]
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: integer } }
+      responses:
+        '200': { description: Produto, content: { application/json: { schema: { $ref: '#/components/schemas/Produto' } } } }
+    put:
+      tags: [Produtos]
+      summary: Atualizar produto (somente admin)
+      security: [{ BearerAuth: [] }]
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: integer } }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                nome: { type: string }
+                categoria: { type: string }
+                unidade: { type: string }
+                precoUnitario: { type: number }
+                estoqueMinimo: { type: number }
+                ativo: { type: boolean }
+      responses:
+        '200': { description: Produto atualizado, content: { application/json: { schema: { $ref: '#/components/schemas/Produto' } } } }
+
+  /api/lotes:
+    get:
+      tags: [Lotes]
+      summary: Listar lotes
+      security: [{ BearerAuth: [] }]
+      parameters:
+        - { name: pagina, in: query, schema: { type: integer } }
+        - { name: limite, in: query, schema: { type: integer } }
+        - { name: busca, in: query, schema: { type: string } }
+        - { name: situacao, in: query, schema: { type: string, enum: [vigente, vencido] } }
+      responses:
+        '200': { description: Lista paginada, content: { application/json: { schema: { $ref: '#/components/schemas/Paginacao' } } } }
+    post:
+      tags: [Lotes]
+      summary: Registrar lote
+      security: [{ BearerAuth: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [idProduto, codigoLote, dataValidade, quantidadeDisponivel]
+              properties:
+                idProduto: { type: integer }
+                codigoLote: { type: string }
+                dataValidade: { type: string, format: date }
+                quantidadeDisponivel: { type: number }
+      responses:
+        '201': { description: Lote criado, content: { application/json: { schema: { $ref: '#/components/schemas/Lote' } } } }
+        '409': { description: Código de lote duplicado para o produto, content: { application/json: { schema: { $ref: '#/components/schemas/Erro' } } } }
+
+  /api/lotes/vencendo:
+    get:
+      tags: [Lotes]
+      summary: Lotes próximos ao vencimento
+      security: [{ BearerAuth: [] }]
+      responses:
+        '200': { description: Lista de lotes, content: { application/json: { schema: { type: array, items: { $ref: '#/components/schemas/Lote' } } } } }
+
+  /api/lotes/{id}:
+    get:
+      tags: [Lotes]
+      summary: Buscar lote por ID
+      security: [{ BearerAuth: [] }]
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: integer } }
+      responses:
+        '200': { description: Lote, content: { application/json: { schema: { $ref: '#/components/schemas/Lote' } } } }
+
+  /api/lotes/{id}/ajuste:
+    put:
+      tags: [Lotes]
+      summary: Ajustar quantidade do lote
+      security: [{ BearerAuth: [] }]
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: integer } }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [quantidade, justificativa]
+              properties:
+                quantidade: { type: number, minimum: 0 }
+                justificativa: { type: string, minLength: 10 }
+      responses:
+        '200': { description: Lote atualizado, content: { application/json: { schema: { $ref: '#/components/schemas/Lote' } } } }
+
+  /api/lotes/{id}/rastreio:
+    get:
+      tags: [Lotes]
+      summary: Rastrear consumo do lote em pedidos (somente admin)
+      security: [{ BearerAuth: [] }]
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: integer } }
+      responses:
+        '200': { description: Lista de pedidos que consumiram o lote }
+
+  /api/pedidos:
+    get:
+      tags: [Pedidos]
+      summary: Listar pedidos
+      security: [{ BearerAuth: [] }]
+      parameters:
+        - { name: pagina, in: query, schema: { type: integer } }
+        - { name: limite, in: query, schema: { type: integer } }
+        - { name: status, in: query, schema: { type: string } }
+      responses:
+        '200': { description: Lista paginada, content: { application/json: { schema: { $ref: '#/components/schemas/Paginacao' } } } }
+    post:
+      tags: [Pedidos]
+      summary: Criar pedido com FEFO (somente vendedor)
+      security: [{ BearerAuth: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [idCliente, itens]
+              properties:
+                idCliente: { type: integer }
+                itens:
+                  type: array
+                  items:
+                    type: object
+                    required: [idProduto, quantidade]
+                    properties:
+                      idProduto: { type: integer }
+                      quantidade: { type: number }
+      responses:
+        '201': { description: Pedido criado, content: { application/json: { schema: { $ref: '#/components/schemas/Pedido' } } } }
+        '409': { description: Saldo insuficiente, content: { application/json: { schema: { $ref: '#/components/schemas/Erro' } } } }
+
+  /api/pedidos/{id}:
+    get:
+      tags: [Pedidos]
+      summary: Detalhe do pedido com itens e histórico
+      security: [{ BearerAuth: [] }]
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: integer } }
+      responses:
+        '200': { description: Pedido com itens e histórico }
+
+  /api/pedidos/{id}/status:
+    patch:
+      tags: [Pedidos]
+      summary: Avançar status do pedido (operador ou admin)
+      security: [{ BearerAuth: [] }]
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: integer } }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [status]
+              properties:
+                status:
+                  type: string
+                  enum: [em_separacao, separado, expedido]
+      responses:
+        '200': { description: Status atualizado }
+        '409': { description: Transição inválida, content: { application/json: { schema: { $ref: '#/components/schemas/Erro' } } } }
+
+  /api/pedidos/{id}/cancelar:
+    patch:
+      tags: [Pedidos]
+      summary: Cancelar pedido com estorno de estoque
+      security: [{ BearerAuth: [] }]
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: integer } }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [motivo]
+              properties:
+                motivo: { type: string }
+      responses:
+        '200': { description: Pedido cancelado }
+        '409': { description: Pedido já expedido ou cancelado, content: { application/json: { schema: { $ref: '#/components/schemas/Erro' } } } }
+
+  /api/estoque/{idProduto}:
+    get:
+      tags: [Estoque]
+      summary: Consultar lotes vigentes de um produto
+      security: [{ BearerAuth: [] }]
+      parameters:
+        - { name: idProduto, in: path, required: true, schema: { type: integer } }
+      responses:
+        '200':
+          description: Lotes e saldo total
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  saldoTotal: { type: number }
+                  lotes: { type: array, items: { $ref: '#/components/schemas/Lote' } }
+
+  /api/estoque/{idProduto}/previa:
+    get:
+      tags: [Estoque]
+      summary: Prévia FEFO para uma quantidade
+      security: [{ BearerAuth: [] }]
+      parameters:
+        - { name: idProduto, in: path, required: true, schema: { type: integer } }
+        - { name: quantidade, in: query, required: true, schema: { type: number } }
+      responses:
+        '200': { description: Lotes que seriam consumidos e saldo restante }
+
+  /api/dashboard:
+    get:
+      tags: [Dashboard]
+      summary: Indicadores gerenciais (somente admin)
+      security: [{ BearerAuth: [] }]
+      responses:
+        '200':
+          description: Indicadores
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  faturamentoDia: { type: number }
+                  valorEstoque: { type: number }
+                  lotesAVencer: { type: integer }
+                  vendasPorDia: { type: array, items: {} }
+                  maisVendidos: { type: array, items: {} }
+
+  /api/auditoria:
+    get:
+      tags: [Auditoria]
+      summary: Listar logs de auditoria (somente admin)
+      security: [{ BearerAuth: [] }]
+      parameters:
+        - { name: pagina, in: query, schema: { type: integer } }
+        - { name: limite, in: query, schema: { type: integer } }
+        - { name: idUsuario, in: query, schema: { type: integer } }
+        - { name: tabela, in: query, schema: { type: string } }
+        - { name: acao, in: query, schema: { type: string, enum: [INSERT, UPDATE] } }
+        - { name: dataInicio, in: query, schema: { type: string, format: date } }
+        - { name: dataFim, in: query, schema: { type: string, format: date } }
+      responses:
+        '200': { description: Lista paginada, content: { application/json: { schema: { $ref: '#/components/schemas/Paginacao' } } } }

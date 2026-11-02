@@ -19,6 +19,7 @@ export default function PedidoDetalhe() {
   const [motivo, setMotivo] = useState('');
   const [cancelando, setCancelando] = useState(false);
   const [erroCancelar, setErroCancelar] = useState('');
+  const [motivoInvalido, setMotivoInvalido] = useState(false);
   const { perfil, socket, registrarReconexao } = useAuth();
 
   const carregar = useCallback(async () => {
@@ -57,11 +58,11 @@ export default function PedidoDetalhe() {
   }
 
   async function cancelarPedido() {
-    if (!motivo.trim()) { setErroCancelar('Motivo é obrigatório'); return; }
+    if (!motivo.trim()) { setMotivoInvalido(true); return; }
     setErroCancelar(''); setCancelando(true);
     try {
       await http.patch(`/api/pedidos/${id}/cancelar`, { motivo: motivo.trim() });
-      setModalCancelar(false); setMotivo(''); await carregar();
+      setModalCancelar(false); setMotivo(''); setMotivoInvalido(false); await carregar();
     } catch (err) {
       setErroCancelar(err.response?.data?.erro ?? 'Erro ao cancelar pedido');
     } finally { setCancelando(false); }
@@ -192,7 +193,7 @@ export default function PedidoDetalhe() {
       {podeCancelar && (
         <button
           className="btn btn-outline-danger ms-2"
-          onClick={() => { setErroCancelar(''); setMotivo(''); setModalCancelar(true); }}
+          onClick={() => { setErroCancelar(''); setMotivo(''); setMotivoInvalido(false); setModalCancelar(true); }}
         >
           Cancelar pedido
         </button>
@@ -204,23 +205,24 @@ export default function PedidoDetalhe() {
             <div className="modal-content">
               <div className="modal-header">
                 <h5 className="modal-title">Cancelar pedido #{pedido.id_pedido}</h5>
-                <button type="button" className="btn-close" onClick={() => setModalCancelar(false)} />
+                <button type="button" className="btn-close" onClick={() => { setModalCancelar(false); setMotivoInvalido(false); }} />
               </div>
               <div className="modal-body">
                 {erroCancelar && <div className="alert alert-danger py-2">{erroCancelar}</div>}
                 <label className="form-label">Motivo do cancelamento *</label>
                 <textarea
-                  className="form-control"
+                  className={`form-control${motivoInvalido ? ' is-invalid' : ''}`}
                   rows={3}
                   value={motivo}
-                  onChange={(e) => setMotivo(e.target.value)}
+                  onChange={(e) => { setMotivo(e.target.value); setMotivoInvalido(false); }}
                   placeholder="Informe o motivo..."
                 />
+                <div className="invalid-feedback">Motivo é obrigatório.</div>
               </div>
               <div className="modal-footer">
                 <button
                   className="btn btn-outline-secondary"
-                  onClick={() => setModalCancelar(false)}
+                  onClick={() => { setModalCancelar(false); setMotivoInvalido(false); }}
                   disabled={cancelando}
                 >
                   Fechar

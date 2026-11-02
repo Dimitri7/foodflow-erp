@@ -4,6 +4,8 @@ import { useAuth } from './contexts/AuthContext.jsx';
 import RotaProtegida from './components/RotaProtegida.jsx';
 import Layout from './components/Layout.jsx';
 import Login from './pages/Login.jsx';
+import EsqueciSenha from './pages/EsqueciSenha.jsx';
+import RedefinirSenha from './pages/RedefinirSenha.jsx';
 import ClientesList from './pages/clientes/ClientesList.jsx';
 import ClienteForm from './pages/clientes/ClienteForm.jsx';
 import ProdutosList from './pages/produtos/ProdutosList.jsx';
@@ -31,6 +33,8 @@ export default function App() {
       <BrowserRouter>
         <Routes>
           <Route path="/login" element={<Login />} />
+          <Route path="/esqueci-senha" element={<EsqueciSenha />} />
+          <Route path="/redefinir-senha" element={<RedefinirSenha />} />
           <Route
             path="/"
             element={

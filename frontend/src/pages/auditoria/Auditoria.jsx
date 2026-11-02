@@ -1,18 +1,23 @@
 import { useState, useEffect, useCallback } from 'react';
 import http from '../../api/http.js';
 import Paginacao from '../../components/Paginacao.jsx';
-import { formatDataHora } from '../../utils/format.js';
+import { formatDataHora, formatQuantidade } from '../../utils/format.js';
 
 const TABELAS = ['clientes', 'historico_status_pedido', 'lotes', 'pedidos', 'produtos', 'usuarios'];
 const limite = 20;
 
+function formatarValor(v) {
+  if (typeof v === 'number') return formatQuantidade(v);
+  return String(v);
+}
+
 function ValorJSON({ valor }) {
   if (valor == null) return <span className="text-muted">—</span>;
-  if (typeof valor !== 'object') return <span className="small">{String(valor)}</span>;
+  if (typeof valor !== 'object') return <span className="small">{formatarValor(valor)}</span>;
   return (
     <ul className="list-unstyled mb-0 small">
       {Object.entries(valor).map(([k, v]) => (
-        <li key={k}><span className="text-muted">{k}:</span> {String(v)}</li>
+        <li key={k}><span className="text-muted">{k}:</span> {formatarValor(v)}</li>
       ))}
     </ul>
   );

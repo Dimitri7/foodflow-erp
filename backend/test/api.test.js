@@ -427,3 +427,47 @@ test('auditoria lista registros com paginação e filtra por ação', async () =
   assert.equal(filtrado.status, 200);
   assert.ok(filtrado.body.dados.every(r => r.acao === 'INSERT'), 'todos os registros filtrados devem ser INSERT');
 });
+
+test('RF18-1 - recuperar-senha com e-mail inexistente retorna 200 sem revelar', async () => {
+  const r = await req('POST', '/api/auth/recuperar-senha', { email: 'naoexiste@foodflow.com' });
+  assert.equal(r.status, 200, `deveria retornar 200: ${JSON.stringify(r.body)}`);
+  assert.ok(r.body.mensagem, 'deve ter campo mensagem');
+});
+
+test('RF18-2 - recuperar-senha com e-mail válido retorna 200 e cria token', async () => {
+  const r = await req('POST', '/api/auth/recuperar-senha', { email: 'admin@foodflow.com' });
+  assert.equal(r.status, 200, `deveria retornar 200: ${JSON.stringify(r.body)}`);
+  const { rows } = await pool.query(
+    `SELECT * FROM tokens_redefinicao_senha WHERE id_usuario = 1 ORDER BY id DESC LIMIT 1`
+  );
+  assert.ok(rows.length > 0, 'token deve ter sido criado no banco');
+  assert.equal(rows[0].usado, false);
+});
+
+test('RF18-3 - redefinir-senha com token expirado retorna 400', async () => {
+  const crypto = require('crypto');
+  const tokenRaw = crypto.randomBytes(32).toString('hex');
+  const tokenHash = crypto.createHash('sha256').update(tokenRaw).digest('hex');
+  const expiraEm = new Date(Date.now() - 1000); // já expirado
+  await pool.query(
+    `INSERT INTO tokens_redefinicao_senha (id_usuario, token_hash, expira_em) VALUES (1, $1, $2)`,
+    [tokenHash, expiraEm]
+  );
+  const r = await req('POST', '/api/auth/redefinir-senha', { token: tokenRaw, novaSenha: 'novaSenha123' });
+  assert.equal(r.status, 400, `deveria retornar 400: ${JSON.stringify(r.body)}`);
+  assert.ok(r.body.erro.includes('expirado'), `mensagem deve mencionar expirado: ${r.body.erro}`);
+});
+
+test('RF18-4 - redefinir-senha com token já usado retorna 400', async () => {
+  const crypto = require('crypto');
+  const tokenRaw = crypto.randomBytes(32).toString('hex');
+  const tokenHash = crypto.createHash('sha256').update(tokenRaw).digest('hex');
+  const expiraEm = new Date(Date.now() + 30 * 60 * 1000);
+  await pool.query(
+    `INSERT INTO tokens_redefinicao_senha (id_usuario, token_hash, expira_em, usado) VALUES (1, $1, $2, true)`,
+    [tokenHash, expiraEm]
+  );
+  const r = await req('POST', '/api/auth/redefinir-senha', { token: tokenRaw, novaSenha: 'novaSenha123' });
+  assert.equal(r.status, 400, `deveria retornar 400: ${JSON.stringify(r.body)}`);
+  assert.ok(r.body.erro.includes('utilizado'), `mensagem deve mencionar utilizado: ${r.body.erro}`);
+});

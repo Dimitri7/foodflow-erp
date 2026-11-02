@@ -30,6 +30,7 @@ export default function LotesList() {
   const [ajusteQtd, setAjusteQtd] = useState('');
   const [ajusteJust, setAjusteJust] = useState('');
   const [erroAjuste, setErroAjuste] = useState('');
+  const [justInvalida, setJustInvalida] = useState(false);
   const [salvandoAjuste, setSalvandoAjuste] = useState(false);
   const limite = 20;
   const { perfil, registrarReconexao, socket } = useAuth();
@@ -63,14 +64,14 @@ export default function LotesList() {
 
   async function salvarAjuste() {
     if (!ajusteJust || ajusteJust.trim().length < 10) {
-      setErroAjuste('Justificativa deve ter ao menos 10 caracteres'); return;
+      setJustInvalida(true); return;
     }
     setErroAjuste(''); setSalvandoAjuste(true);
     try {
       await http.put(`/api/lotes/${loteAjuste.id_lote}/ajuste`, {
         quantidade: Number(ajusteQtd), justificativa: ajusteJust.trim(),
       });
-      setModalAjuste(false); setLoteAjuste(null); setAjusteQtd(''); setAjusteJust('');
+      setModalAjuste(false); setLoteAjuste(null); setAjusteQtd(''); setAjusteJust(''); setJustInvalida(false);
       await carregar();
     } catch (err) {
       setErroAjuste(err.response?.data?.erro ?? 'Erro ao ajustar estoque');
@@ -191,7 +192,7 @@ export default function LotesList() {
             <div className="modal-content">
               <div className="modal-header">
                 <h5 className="modal-title">Ajustar estoque — {loteAjuste.codigo_lote}</h5>
-                <button type="button" className="btn-close" onClick={() => setModalAjuste(false)} />
+                <button type="button" className="btn-close" onClick={() => { setModalAjuste(false); setJustInvalida(false); }} />
               </div>
               <div className="modal-body">
                 {erroAjuste && <div className="alert alert-danger py-2">{erroAjuste}</div>}
@@ -207,23 +208,22 @@ export default function LotesList() {
                   />
                 </div>
                 <div className="mb-3">
-                  <label className="form-label">
-                    Justificativa *{' '}
-                    <span className="text-muted small">({ajusteJust.length} caracteres, mín. 10)</span>
-                  </label>
+                  <label className="form-label">Justificativa *</label>
                   <textarea
-                    className="form-control"
+                    className={`form-control${justInvalida ? ' is-invalid' : ''}`}
                     rows={3}
                     value={ajusteJust}
-                    onChange={(e) => setAjusteJust(e.target.value)}
+                    onChange={(e) => { setAjusteJust(e.target.value); setJustInvalida(false); }}
                     placeholder="Descreva o motivo do ajuste..."
                   />
+                  <div className="invalid-feedback">Mínimo de 10 caracteres.</div>
+                  <div className="form-text">Mínimo de 10 caracteres.</div>
                 </div>
               </div>
               <div className="modal-footer">
                 <button
                   className="btn btn-outline-secondary"
-                  onClick={() => setModalAjuste(false)}
+                  onClick={() => { setModalAjuste(false); setJustInvalida(false); }}
                   disabled={salvandoAjuste}
                 >
                   Fechar
