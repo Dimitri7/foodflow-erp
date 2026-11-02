@@ -50,7 +50,8 @@ async function recuperarSenha(email) {
     client.release();
   }
 
-  const link = `${process.env.FRONTEND_URL}/redefinir-senha?token=${tokenRaw}`;
+  const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:5173';
+  const link = `${frontendUrl}/redefinir-senha?token=${tokenRaw}`;
   const transportador = await getTransportador();
   const info = await transportador.sendMail({
     from: '"FoodFlow ERP" <noreply@foodflow.local>',
