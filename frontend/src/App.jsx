@@ -21,6 +21,7 @@ import UsuariosList from './pages/usuarios/UsuariosList.jsx';
 import UsuarioForm from './pages/usuarios/UsuarioForm.jsx';
 import Dashboard from './pages/dashboard/Dashboard.jsx';
 import Auditoria from './pages/auditoria/Auditoria.jsx';
+import Ajuda from './pages/ajuda/Ajuda.jsx';
 
 function RedirecaoInicial() {
   const { perfil } = useAuth();
@@ -178,6 +179,14 @@ export default function App() {
               element={
                 <RotaProtegida perfisPermitidos={['admin']}>
                   <Auditoria />
+                </RotaProtegida>
+              }
+            />
+            <Route
+              path="ajuda"
+              element={
+                <RotaProtegida>
+                  <Ajuda />
                 </RotaProtegida>
               }
             />

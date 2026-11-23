@@ -1,4 +1,4 @@
-import { NavLink, Outlet, useNavigate } from 'react-router-dom';
+import { Link, NavLink, Outlet, useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext.jsx';
 
 const MENU = [
@@ -49,6 +49,9 @@ export default function Layout() {
       <main className="content-area p-4">
         <Outlet />
       </main>
+            <Link to="/ajuda" className="botao-ajuda" title="Como usar o sistema">
+        ?
+      </Link>
     </div>
   );
 }
