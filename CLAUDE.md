@@ -28,7 +28,7 @@ Tenho só hoje para terminar o MVP inteiro. Trabalhe em blocos grandes, sem para
 
 ## Estilo de código
 
-O código precisa parecer escrito por um estudante cuidadoso de uma equipe brasileira.
+O código deve ser limpo, legível e consistente, seguindo os padrões abaixo.
 
 - Comentários só onde a regra não fica clara lendo o código (por exemplo, por que o lock usa `FOR UPDATE` ou por que os produtos são travados em ordem de id). Nada de comentário que repete o que a linha faz, nada de JSDoc em toda função, nada de banners como `// ===== ROTAS =====`.
 - Sem emojis em código, logs, commits ou README.
