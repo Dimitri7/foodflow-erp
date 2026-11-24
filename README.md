@@ -4,6 +4,13 @@ Sistema web para distribuidoras de alimentos. Permite cadastrar clientes, produt
 
 Projeto da disciplina de Desenvolvimento de Plataformas Web — UNIFOR.
 
+## Demonstração online
+
+🔗 **Acesse o sistema:** [https://foodflow-fzla.onrender.com/]
+
+> O projeto está hospedado no plano gratuito do Render. Se ficar inativo, o primeiro acesso pode levar cerca de 50 segundos para carregar enquanto o servidor "acorda".
+
+
 ## Tecnologias
 
 - **Backend:** Node.js LTS, Express, PostgreSQL (`pg` com SQL puro), `bcryptjs`, `jsonwebtoken`, `socket.io`
@@ -94,11 +101,5 @@ Os 7 backups mais recentes são mantidos automaticamente. Para agendar backup di
 
 ## Documentação da API
 
-Com o servidor rodando, acesse `http://localhost:3001/api/docs` para a interface Swagger com todas as rotas, perfis e schemas.
-
-## Lint
-
-```bash
-cd backend && npm run lint
-cd frontend && npm run lint
-```
+- **Local:** com o servidor rodando, acesse `http://localhost:3001/api/docs`
+- **Produção:** [https://SEU-SERVICO-API.onrender.com/api
